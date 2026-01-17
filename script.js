@@ -1,5 +1,6 @@
-window.addEventListener("beforeunload", e=>{
-  e.preventDefault(); e.returnValue="";
+window.addEventListener("beforeunload", e => {
+  e.preventDefault();
+  e.returnValue = "";
 });
 
 const quizData = [
@@ -60,48 +61,91 @@ const quizData = [
 {q:"MERN stands for?",o:["Mongo Express React Node","MySQL Express React Node","Mongo Ember React Node","None"],a:0}
 ];
 
-const form=document.getElementById("quizForm");
-quizData.forEach((q,i)=>{
-  form.innerHTML+=`
-  <div class="question">
-  <h3>${i+1}. ${q.q}</h3>
-  ${q.o.map((o,j)=>`
-    <label><input type="radio" name="q${i}" value="${j}"> ${o}</label>`).join("")}
-  </div>`;
+/* ---------- SAFE RENDERING (NO innerHTML) ---------- */
+
+const form = document.getElementById("quizForm");
+
+quizData.forEach((q, i) => {
+  const questionDiv = document.createElement("div");
+  questionDiv.className = "question";
+
+  const title = document.createElement("h3");
+  title.textContent = `${i + 1}. ${q.q}`;
+  questionDiv.appendChild(title);
+
+  const optionsDiv = document.createElement("div");
+  optionsDiv.className = "options";
+
+  q.o.forEach((opt, j) => {
+    const label = document.createElement("label");
+
+    const input = document.createElement("input");
+    input.type = "radio";
+    input.name = `q${i}`;
+    input.value = j;
+
+    label.appendChild(input);
+    label.appendChild(document.createTextNode(" " + opt));
+
+    optionsDiv.appendChild(label);
+  });
+
+  questionDiv.appendChild(optionsDiv);
+  form.appendChild(questionDiv);
 });
 
 /* -------- TIMER WITH RESUME LOCK -------- */
-let time = localStorage.getItem("time") ? Number(localStorage.getItem("time")) : 3000;
-const timerEl=document.getElementById("timer");
-const warning=document.getElementById("warning");
+let time = localStorage.getItem("time")
+  ? Number(localStorage.getItem("time"))
+  : 3000;
 
-const timer=setInterval(()=>{
-  localStorage.setItem("time",time);
-  timerEl.textContent=`${Math.floor(time/60)}:${String(time%60).padStart(2,"0")}`;
-  if(time<=300){warning.textContent="Last 5 minutes remaining";timerEl.style.color="red";}
-  if(time<=0){clearInterval(timer);submitQuiz();}
+const timerEl = document.getElementById("timer");
+const warning = document.getElementById("warning");
+
+const timer = setInterval(() => {
+  localStorage.setItem("time", time);
+
+  timerEl.textContent =
+    `${Math.floor(time / 60)}:${String(time % 60).padStart(2, "0")}`;
+
+  if (time <= 300) {
+    warning.textContent = "Last 5 minutes remaining";
+    timerEl.style.color = "red";
+  }
+
+  if (time <= 0) {
+    clearInterval(timer);
+    submitQuiz();
+  }
   time--;
-},1000);
+}, 1000);
 
-document.getElementById("submitBtn").onclick=submitQuiz;
+document.getElementById("submitBtn").onclick = submitQuiz;
 
-function submitQuiz(){
+/* ---------- SUBMIT ---------- */
+function submitQuiz() {
   clearInterval(timer);
   localStorage.clear();
-  document.getElementById("submitBtn").disabled=true;
-  let score=0;
-  quizData.forEach((q,i)=>{
-    const ans=document.querySelector(`input[name="q${i}"]:checked`);
-    if(ans && +ans.value===q.a) score++;
+  document.getElementById("submitBtn").disabled = true;
+
+  let score = 0;
+  quizData.forEach((q, i) => {
+    const ans = document.querySelector(`input[name="q${i}"]:checked`);
+    if (ans && Number(ans.value) === q.a) score++;
   });
-  document.querySelectorAll("input").forEach(i=>i.disabled=true);
-  const percent=((score/quizData.length)*100).toFixed(2);
-  document.getElementById("result").classList.remove("hidden");
-  document.getElementById("result").innerHTML=`
-  <h2>Assessment Result</h2>
-  <p>Total Questions: 50</p>
-  <p>Correct Answers: ${score}</p>
-  <p>Percentage: ${percent}%</p>
-  <h3>Status: ${percent>=60?"PASS":"FAIL"}</h3>
-  <button onclick="window.print()">Download Certificate (PDF)</button>`;
+
+  document.querySelectorAll("input").forEach(i => i.disabled = true);
+
+  const percent = ((score / quizData.length) * 100).toFixed(2);
+
+  const result = document.getElementById("result");
+  result.classList.remove("hidden");
+  result.innerHTML = `
+    <h2>Assessment Result</h2>
+    <p>Total Questions: 50</p>
+    <p>Correct Answers: ${score}</p>
+    <p>Percentage: ${percent}%</p>
+    <h3>Status: ${percent >= 60 ? "PASS" : "FAIL"}</h3>
+    <button onclick="window.print()">Download Certificate (PDF)</button>
+  `;
 }
